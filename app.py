@@ -20,7 +20,7 @@ user_avatar_url = "https://api.dicebear.com/8.x/pixel-art/svg?seed=Simon&beardPr
 
 specialist_id_caption = {
   "Diana's assistant": {
-    "assistant_id": "asst_mazfXTK1DICPs7PiPfJxGsZZ",
+    "assistant_id": "asst_d1mG01RGb8UEA1Anue9QgkQF",
     "caption": "role is multifaceted, encompassing elements of an assistant, AI journal, therapist, friend, and counselor.",
     "avatar": "https://cdn.pixabay.com/photo/2017/03/31/23/11/robot-2192617_1280.png"
   },
