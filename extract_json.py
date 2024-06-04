@@ -63,4 +63,23 @@ def remove_json_artifact():
 
     return differential_diagnosis, critical_actions, modified_text
 
- 
+def parse_json(assistant_response):
+    # Call the extract_json function and capture its return values
+    differential_diagnosis, critical_actions, modified_text = extract_json(assistant_response)
+
+    # Check if the extracted values indicate no JSON content
+    if not differential_diagnosis and not critical_actions:
+        print("No JSON content found in assistant response.")
+        st.session_state.assistant_response = modified_text
+        return
+    
+    # Add debugging print statements
+    print("Debug: assistant response: ", assistant_response)
+    print("Debug: differential_diagnosis:", differential_diagnosis)
+    print("Debug: critical_actions:", critical_actions)
+    print("Debug: modified_text:", modified_text)
+    
+    # Assign the return values to the session state
+    st.session_state.differential_diagnosis = differential_diagnosis
+    st.session_state.critical_actions = critical_actions
+    st.session_state.assistant_response = modified_text
