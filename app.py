@@ -5,7 +5,6 @@ import os
 from dotenv import load_dotenv
 from prompts import *
 from utils import *
-from extract_json import extract_json
 from langchain_core.messages import HumanMessage, AIMessage
 
 # Load variables
