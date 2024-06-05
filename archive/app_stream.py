@@ -1,10 +1,13 @@
 import os
+
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
+from streamlit_float import float_css_helper
+
 from langchain_core.messages import HumanMessage, AIMessage
 from prompts import *
-from utils import *
+from archive.utils import *
 
 # Load environment variables
 load_dotenv()
@@ -33,7 +36,6 @@ specialist_id_caption = {
 def initialize_session_state():
     primary_specialist = list(specialist_id_caption.keys())[0]
     primary_specialist_id = specialist_id_caption[primary_specialist]["assistant_id"]
-    primary_specialist_avatar = specialist_id_caption[primary_specialist]["avatar"]
     state_keys_defaults = {
         "chat_history": [],
         "user_question": "",
@@ -44,8 +46,8 @@ def initialize_session_state():
         "specialist_input": "",
         "specialist": primary_specialist,
         "assistant_id": primary_specialist_id,
-        "specialist_avatar": primary_specialist_avatar,
-        "should_rerun": False        
+        "should_rerun": False
+        
     }
     for key, default in state_keys_defaults.items():
         if key not in st.session_state:
@@ -66,6 +68,35 @@ def display_header():
             """, 
             unsafe_allow_html=True
         )
+        
+
+
+def handle_user_input_container():
+    input_container = st.container()
+    input_container.float(float_css_helper(bottom="50px"))
+    with input_container:
+        user_question = st.chat_input("How may I help you?", key="widget2")
+        if user_question:
+            handle_user_input(user_question)
+
+
+def display_chat_history():
+    chat_container = st.container()
+    with chat_container:
+        for message in st.session_state.chat_history:
+            avatar_url = message.get("avatar", user_avatar_url)
+            with st.chat_message(message["role"], avatar=avatar_url):
+                st.markdown(message["content"], unsafe_allow_html=True)
+
+def process_queries():
+    if st.session_state["user_question"]:
+        handle_user_input(st.session_state["user_question"])
+
+def create_new_thread():
+    thread = client.beta.threads.create()
+    st.session_state.thread_id = thread.id
+    st.session_state.chat_history = []
+    st.rerun()
 
 def generate_response_stream(stream):
     for response in stream:
@@ -74,51 +105,24 @@ def generate_response_stream(stream):
                 if delta.type == 'text':
                     yield delta.text.value
 
-
-def get_response(user_question):
-    client.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=user_question)
-
-    response_placeholder = st.empty()  # Placeholder for streaming response text
-    response_text = ""  # To accumulate response text
-
-    # Stream response from the assistant
-    with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id, assistant_id=st.session_state.assistant_id) as stream:
-        for chunk in stream:
-            if chunk.event == 'thread.message.delta':  # Check if it is the delta message
-                for delta in chunk.data.delta.content:
-                    if delta.type == 'text':
-                        response_text += delta.text.value  # Append new text fragment to response text
-                        response_placeholder.markdown(response_text)  # Update the placeholder with new response text as markdown
-
-    return response_text
-
-def display_chat_history():    
-    for message in st.session_state.chat_history:
-        if isinstance(message, HumanMessage):
-            avatar_url = message.avatar
-            with st.chat_message("user", avatar=user_avatar_url):                
-                st.markdown(message.content, unsafe_allow_html=True)
-        else:
-            avatar_url = st.session_state.specialist_avatar
-            with st.chat_message("AI", avatar=avatar_url):
-                st.markdown(message.content, unsafe_allow_html=True)
-
-
-def user_input():
-    user_question = st.chat_input("How may I help you?")
+def handle_user_input(user_question):
     if user_question is not None and user_question != "":
-        st.session_state.chat_history.append(HumanMessage(user_question, avatar=user_avatar_url))
+        st.session_state.chat_history.append(HumanMessage(user_question))
 
-        with st.chat_message("user", avatar=user_avatar_url):
-            st.markdown(user_question)
-        
-        with st.chat_message("AI", avatar=st.session_state.specialist_avatar):
-            ai_response = get_response(user_question)
-            assistant_response = ai_response
-        
-        st.session_state.chat_history.append(AIMessage(assistant_response, avatar=st.session_state.specialist_avatar))
+        with st.chat_message("user"):
+            st.markdwon(user_question)
     
-
+    
+    
+    
+    
+    client.beta.threads.messages.create(thread_id=st.session_state.thread_id, role="user", content=user_question)
+    
+    with client.beta.threads.runs.stream(thread_id=st.session_state.thread_id, assistant_id=st.session_state.assistant_id) as stream:
+        assistant_response = "".join(generate_response_stream(stream))
+        
+    specialist_avatar = specialist_id_caption[st.session_state.specialist]["avatar"]
+    st.session_state.chat_history.append({"role": "assistant", "content": assistant_response, "avatar": specialist_avatar})
 
 def main():
     if "thread_id" not in st.session_state:
@@ -127,9 +131,9 @@ def main():
         
     initialize_session_state()
     display_header()
+    #handle_user_input_container()
+    process_queries()
     display_chat_history()
-    user_input()
-
 
 if __name__ == '__main__':
     main()

@@ -5,36 +5,54 @@ from dotenv import load_dotenv
 # Set your OpenAI API key
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
+assistant_id = "asst_EZg5wB8vHSkEhJGEt5nM7Ya3"
 
 client = OpenAI()
 
-#create an assistant
-assistant = client.beta.assistants.create(
-  name="Math Tutor",
-  instructions="You are a personal math tutor. Write and run code to answer math questions.",
-  tools=[{"type": "code_interpreter"}],
-  model="gpt-3.5-turbo",
-)
+#load  an assistant
+client.beta.assistants.retrieve(assistant_id=assistant_id)
 
 thread = client.beta.threads.create()
 
-message = client.beta.threads.messages.create(
-  thread_id=thread.id,
-  role="user",
-  content="I need to solve the equation `3x + 11 = 14`. Can you help me?"
-)
+client.beta.assistants.update(assistant_id=assistant_id,instructions="YOU LOVE ONLY two DOGS!!!!!")
+thread_id = "thread_cpoafPTRH20Nk2JK1eJrOOwZ"
+thread = client.beta.threads.retrieve(thread_id=thread_id)
 
-run = client.beta.threads.runs.create_and_poll(
-  thread_id=thread.id,
-  assistant_id=assistant.id,
-  instructions="Please address the user as Jane Doe. The user has a premium account."
-)
+all_messages = []
+limit = 100  # Maximum allowed limit per request 
+after = None
 
-if run.status == 'completed': 
-  messages = client.beta.threads.messages.list(
-    thread_id=thread.id
-  )
-  print(f'MESSAGES: {messages}')
-else:
-  print(f'\nRUN STATUS: {run.status}\n')
+while True:
+    response = client.beta.threads.messages.list(thread_id=thread_id, limit=limit, after=after)
+    messages = response.data
+    if not messages:
+        break
+    all_messages.extend(messages)
+    after = messages[-1].id  # Set the 'after' cursor to the ID of the last message
 
+for message in all_messages:
+    # Extract the text content from the message
+    message_content = message.content
+    if isinstance(message_content, list):
+        text_parts = [block.text.value for block in message_content if hasattr(block, 'text')]
+        text = ' '.join(text_parts)
+        print(f"{message.role}: {text}")
+
+# save to a list of dictionary
+extracted_messages = []
+for message in all_messages:
+    # Initialize a dictionary for each message
+    message_dict = {
+        'role': message.role,
+        'text': ''
+    }
+
+    message_content = message.content
+    if isinstance(message_content, list):
+        text_parts = [block.text.value for block in message_content if hasattr(block, 'text')]
+        text = ' '.join(text_parts)
+        message_dict['text'] = text
+    
+    extracted_messages.append(message_dict)
+
+# Now `extracted_messages` is a list of dictionaries containing the role and text of each message.
