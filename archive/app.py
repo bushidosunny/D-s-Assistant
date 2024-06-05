@@ -1,11 +1,8 @@
 import os
 import streamlit as st
-from streamlit_float import float_css_helper
 from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_core.messages import HumanMessage, AIMessage
-from datetime import datetime
-from prompts import *
 
 # Load environment variables
 load_dotenv()
@@ -106,16 +103,7 @@ def display_chat_history():
 
 
 def user_input():
-    input_container = st.container()
-    input_container.float(float_css_helper(bottom="50px"))
-    with input_container:
-        col1, col2 = st.columns([4, 1])  # Adjust column widths for better appearance
-        with col1:
-            user_question = st.chat_input("How may I help you?")
-        with col2:
-            submit_button = st.button("Upload History")
-        if submit_button:
-            upload_history()
+    user_question = st.chat_input("How may I help you?")
     if user_question is not None and user_question != "":
         st.session_state.chat_history.append(HumanMessage(user_question, avatar=user_avatar_url))
 
@@ -136,71 +124,6 @@ def summarize_conversation(messages):
     ]
     summary = chat_with_gpt(summary_message)
     return summary
-
-def upload_history():
-    
-    # pull thread necessary?
-    #thread = client.beta.threads.retrieve(st.session_state.thread_id)
-    # extract chat_history from thread
-    all_messages = []
-    limit = 100  # Maximum allowed limit per request 
-    after = None
-
-    while True:
-        response = client.beta.threads.messages.list(thread_id=st.session_state.thread_id, limit=limit, after=after)
-        messages = response.data
-        if not messages:
-            break
-        all_messages.extend(messages)
-        after = messages[-1].id      # Set the 'after' cursor to the ID of the last message
-    # Reverse the messages to chronological order
-    all_messages.reverse()
-    # save to a list of dictionary
-    extracted_messages = []
-    for message in all_messages:
-        # Initialize a dictionary for each message
-        message_dict = {
-            'role': message.role,
-            'text': ''
-        }
-
-        message_content = message.content
-        if isinstance(message_content, list):
-            text_parts = [block.text.value for block in message_content if hasattr(block, 'text')]
-            text = ' '.join(text_parts)
-            message_dict['text'] = text
-        
-        extracted_messages.append(message_dict)
-        # Now `extracted_messages` is a list of dictionaries containing the role and text of each message.
-    # Convert the list of dictionaries to a plain text format
-    plain_text = ""
-    for msg in extracted_messages:
-        plain_text += f"{msg['role']}: {msg['text']}\n"
-
-    # Summarize chat history (plain_text)  
-    response = client.chat.completions.create(
-        messages=[
-            {
-                "role": "user",
-                "content": summary_prompt + plain_text,
-            }
-        ],
-        model="gpt-3.5-turbo",
-        temperature=0.5
-    )
-    summary = response.choices[0].message.content
-    # print chat summary
-    print("\nChat Summary:")
-    print(summary)
-    print(f'Lenght: {len(summary)}')
-    # update Global instructions of assistant with timestamp
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    # extract assistant instructions
-    assistant_info=client.beta.assistants.retrieve(assistant_id=st.session_state.assistant_id)
-    assistant_instructions = assistant_info.instructions
-    # upload new assistant instructions
-    new_instructions = assistant_instructions + '\n' + current_time + '\n' + summary
-    client.beta.assistants.update(assistant_id=st.session_state.assistant_id,instructions=new_instructions)
 
 def main():
     if "thread_id" not in st.session_state:
