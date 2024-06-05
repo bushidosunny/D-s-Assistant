@@ -3,12 +3,11 @@ import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_core.messages import HumanMessage, AIMessage
-from prompts import *
-from utils import *
 
 # Load environment variables
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
+thread_id = os.getenv("DIANA_THREAD_ID")
 if not api_key:
     st.error("API Key not found! Please check your environment variables.")
 
@@ -118,17 +117,23 @@ def user_input():
         
         st.session_state.chat_history.append(AIMessage(assistant_response, avatar=st.session_state.specialist_avatar))
     
-
+def summarize_conversation(messages):
+    combined_conversation = " ".join([f"{m['role']}: {m['content']}" for m in messages])
+    summary_prompt = f"Summarize the following conversation:\n\n{combined_conversation}\n\nSummary:"
+    summary_message = [
+        {"role": "system", "content": summary_prompt}
+    ]
+    summary = chat_with_gpt(summary_message)
+    return summary
 
 def main():
-    if "thread_id" not in st.session_state:
-        thread = client.beta.threads.create()
-        st.session_state.thread_id = thread.id
+    st.session_state.thread_id = thread_id
         
     initialize_session_state()
     display_header()
     display_chat_history()
     user_input()
+    print(st.session_state.thread_id)
 
 
 if __name__ == '__main__':
