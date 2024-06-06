@@ -128,15 +128,6 @@ def user_input():
         
         st.session_state.chat_history.append(AIMessage(assistant_response, avatar=st.session_state.specialist_avatar))
     
-def summarize_conversation(messages):
-    combined_conversation = " ".join([f"{m['role']}: {m['content']}" for m in messages])
-    summary_prompt = f"Summarize the following conversation:\n\n{combined_conversation}\n\nSummary:"
-    summary_message = [
-        {"role": "system", "content": summary_prompt}
-    ]
-    summary = chat_with_gpt(summary_message)
-    return summary
-
 def upload_history():
     
     # pull thread necessary?
