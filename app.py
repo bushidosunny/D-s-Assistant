@@ -6,6 +6,7 @@ from openai import OpenAI
 from langchain_core.messages import HumanMessage, AIMessage
 from datetime import datetime
 from prompts import *
+from recorder import record_audio, transcribe_audio
 
 # Load environment variables
 load_dotenv()
@@ -109,11 +110,16 @@ def user_input():
     input_container = st.container()
     input_container.float(float_css_helper(bottom="50px"))
     with input_container:
-        col1, col2 = st.columns([4, 1])  # Adjust column widths for better appearance
+        col1, col2, col3 = st.columns([1,4,1])  # Adjust column widths for better appearance
         with col1:
-            user_question = st.chat_input("How may I help you?")
+            submit_button = st.button("Upload")
         with col2:
-            submit_button = st.button("Upload History")
+            user_question = st.chat_input("How may I help you?")
+        with col3:
+            user_question = record_audio()
+
+                
+    
         if submit_button:
             upload_history()
     if user_question is not None and user_question != "":
