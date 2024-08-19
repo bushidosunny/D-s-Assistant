@@ -109,20 +109,26 @@ def display_chat_history():
 def user_input():
     input_container = st.container()
     input_container.float(float_css_helper(bottom="50px"))
+    
     with input_container:
         col1, col2, col3 = st.columns([1,4,1])  # Adjust column widths for better appearance
+        
         with col1:
             submit_button = st.button("Upload")
+        
         with col2:
-            user_question = st.chat_input("How may I help you?")
+            text_input = st.chat_input("How may I help you?")
+        
         with col3:
-            user_question = record_audio()
+            audio_input = record_audio()
 
-                
-    
         if submit_button:
             upload_history()
-    if user_question is not None and user_question != "":
+
+        # New code: Combine text and audio inputs
+        user_question = text_input if text_input else audio_input
+
+    if user_question:
         st.session_state.chat_history.append(HumanMessage(user_question, avatar=user_avatar_url))
 
         with st.chat_message("user", avatar=user_avatar_url):
